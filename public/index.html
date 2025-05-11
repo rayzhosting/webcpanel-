@@ -1,1 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Buat Panel Pterodactyl</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 600px;
+      margin: 30px auto;
+    }
 
+    #ramOptions button {
+      margin: 5px;
+      padding: 10px 20px;
+      border: 1px solid #ccc;
+      background-color: #f4f4f4;
+      cursor: pointer;
+    }
+
+    #ramOptions button.selected {
+      background-color: #4CAF50;
+      color: white;
+      border-color: #4CAF50;
+    }
+
+    form {
+      margin-bottom: 20px;
+    }
+
+    #result {
+      background: #f0f0f0;
+      padding: 15px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Buat Panel Pterodactyl</h1>
+
+  <form id="panelForm">
+    <label>Domain Panel:
+      <input type="text" name="domain" required />
+    </label>
+    <br/><br/>
+
+    <label>Pilih Provider:
+      <select name="provider" required>
+        <option value="plta">PLTA</option>
+        <option value="pltc">PLTC</option>
+      </select>
+    </label>
+    <br/><br/>
+
+    <label>Pilih RAM:</label>
+    <div id="ramOptions">
+      <button type="button" data-ram="512">512 MB</button>
+      <button type="button" data-ram="1024">1 GB</button>
+      <button type="button" data-ram="2048">2 GB</button>
+      <button type="button" data-ram="4096">4 GB</button>
+    </div>
+    <input type="hidden" name="ram" id="selectedRam" required />
+
+    <br/>
+    <button type="submit">Buat Panel</button>
+  </form>
+
+  <div id="result"></div>
+
+  <script>
+    const ramButtons = document.querySelectorAll('#ramOptions button');
+    const selectedRamInput = document.getElementById('selectedRam');
+
+    ramButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        ramButtons.forEach(btn => btn.classList.remove('selected'));
+        button.classList.add('selected');
+        selectedRamInput.value = button.getAttribute('data-ram');
+      });
+    });
+
+    document.getElementById('panelForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!selectedRamInput.value) {
+        alert("Silakan pilih RAM terlebih dahulu.");
+        return;
+      }
+
+      const formData = new FormData(e.target);
+      const response = await fetch('/api/create-panel', {
+        method: 'POST',
+        body: new URLSearchParams(formData)
+      });
+
+      const data = await response.json();
+
+      if (data.status === 'success') {
+        document.getElementById('result').innerHTML = `
+          <h3>${data.message}</h3>
+          <p><strong>Panel URL:</strong> <a href="${data.panel_url}" target="_blank">${data.panel_url}</a></p>
+          <p><strong>Username:</strong> ${data.credentials.username}</p>
+          <p><strong>Password:</strong> ${data.credentials.password}</p>
+          <p><strong>RAM:</strong> ${data.server_info.ram} MB</p>
+          <p><strong>CPU:</strong> ${data.server_info.cpu} core</p>
+          <p><strong>Disk:</strong> ${data.server_info.disk} MB</p>
+        `;
+      } else {
+        document.getElementById('result').innerHTML = `<p style="color:red;">${data.error || 'Gagal membuat panel.'}</p>`;
+      }
+    });
+  </script>
+</body>
+</html>
